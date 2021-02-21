@@ -3,6 +3,12 @@ name = "porco"
 version = "0.1.0"
 authors = ["Ming <mingyli34@gmail.com>"]
 edition = "2018"
+description = "Composable probability distributions"
+documentation = "https://docs.rs/porco"
+readme = "README.md"
+homepage = "https://github.com/mingyli/porco"
+repository = "https://github.com/mingyli/porco"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

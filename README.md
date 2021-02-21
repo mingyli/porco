@@ -2,6 +2,8 @@
 
 Composable probability distributions.
 
+<https://docs.rs/porco>
+
 ## Examples
 
 Create simple probability distributions.
