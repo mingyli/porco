@@ -1,5 +1,9 @@
-use crate::{assoc_list::AssociationExt, prob::Probability};
+use crate::{assoc_list::AssociationExt, Probability};
 
+/// [`Distribution<T>`] is a discrete probability distribution over
+/// the set of outcomes `T`.
+///
+/// See the [module level documentation for an overview](crate).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Distribution<T>(Vec<(T, Probability)>);
 
@@ -7,20 +11,43 @@ impl<T> Distribution<T>
 where
     T: Eq,
 {
+    /// Create a distribution using given outcome probabilities.
     pub fn new<V: Into<Vec<(T, Probability)>>>(v: V) -> Distribution<T> {
         Distribution(v.into()).regroup()
     }
 
+    /// Create a distribution where the given outcome always occurs.
     pub fn always(t: T) -> Distribution<T> {
         Distribution(vec![(t, Probability::ONE)])
     }
 
+    /// Create a uniform distribution over a collection of outcomes.
     pub fn uniform<V: Into<Vec<T>>>(outcomes: V) -> Distribution<T> {
         let outcomes = outcomes.into();
         let p = Probability(1.0 / outcomes.len() as f64);
         Distribution::from(outcomes.into_iter().map(|t| (t, p)).collect::<Vec<_>>())
     }
 
+    /// Convert a `Distribution<T>` into a `Distribution<U>` by mapping
+    /// outcomes in `T` to outcomes in `U`.
+    ///
+    /// ```
+    /// # use porco::{Distribution, Probability};
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// # enum Coin {
+    /// #     Heads,
+    /// #     Tails,
+    /// # }
+    /// let dist = Distribution::uniform([0, 1, 2, 3]).map(|v| {
+    ///     if v == 3 {
+    ///         Coin::Heads
+    ///     } else {
+    ///         Coin::Tails
+    ///     }
+    /// });
+    /// assert_eq!(dist.pmf(&Coin::Heads), Probability(0.25));
+    /// assert_eq!(dist.pmf(&Coin::Tails), Probability(0.75));
+    /// ```
     pub fn map<F, U>(self, f: F) -> Distribution<U>
     where
         U: Eq,
@@ -34,6 +61,50 @@ where
         )
     }
 
+    /// Convert a `Distribution<T>` into a `Distribution<U>` by mapping
+    /// outcomes in `T` to distributions over `U`.
+    ///
+    /// ```
+    /// # use porco::{Distribution, Probability};
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// # enum Coin {
+    /// #     Heads,
+    /// #     Tails,
+    /// # }
+    /// fn roll_a_die_if_heads(coin: Coin) -> Distribution<Option<u8>> {
+    ///     match coin {
+    ///         Coin::Heads => Distribution::uniform([Some(1), Some(2), Some(3), Some(4)]),
+    ///         Coin::Tails => Distribution::always(None),
+    ///     }
+    /// }
+    ///
+    /// let dist = Distribution::uniform([Coin::Heads, Coin::Tails])
+    ///     .and_then(roll_a_die_if_heads);
+    /// assert_eq!(dist.pmf(&None), Probability(0.5));
+    /// assert_eq!(dist.pmf(&Some(2)), Probability(0.125));
+    /// ```
+    ///
+    /// [`Distribution::and_then`] can also be used to construct joint distributions.
+    ///
+    /// ```
+    /// # use porco::{Distribution, Probability};
+    /// # #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    /// # enum Coin {
+    /// #     Heads,
+    /// #     Tails,
+    /// # }
+    /// # impl Coin {
+    /// #     fn flip() -> Distribution<Coin> {
+    /// #         Distribution::uniform([Coin::Heads, Coin::Tails])
+    /// #     }
+    /// # }
+    /// fn flip_another(coin: Coin) -> Distribution<(Coin, Coin)> {
+    ///     Distribution::uniform([(coin, Coin::Heads), (coin, Coin::Tails)])
+    /// }
+    ///
+    /// let two_coins = Coin::flip().and_then(flip_another);
+    /// assert_eq!(two_coins.pmf(&(Coin::Heads, Coin::Heads)), Probability(0.25));
+    /// ```
     pub fn and_then<F, U>(self, f: F) -> Distribution<U>
     where
         U: Eq,
@@ -76,6 +147,19 @@ where
         )
     }
 
+    /// Create a distribution from a distribution conditioned on an event occurring.
+    ///
+    /// ```
+    /// # use porco::{Distribution, Probability};
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// # enum Coin {
+    /// #     Heads,
+    /// #     Tails,
+    /// # }
+    /// let die = Distribution::uniform([1, 2, 3, 4, 5, 6]);
+    /// let die_given_less_than_three = die.given(|&v| v < 3);
+    /// assert_eq!(die_given_less_than_three.pmf(&1), Probability(0.5));
+    /// ```
     pub fn given<F>(self, condition: F) -> Distribution<T>
     where
         F: Fn(&T) -> bool,
@@ -89,6 +173,7 @@ where
         .normalize()
     }
 
+    /// Get the probability of an outcome occurring from the probability mass function.
     pub fn pmf(&self, t: &T) -> Probability {
         *self.0.get_(t).unwrap_or(&Probability::ZERO)
     }
@@ -98,6 +183,11 @@ impl<T> Distribution<Distribution<T>>
 where
     T: Eq,
 {
+    /// Convert a `Distribution<Distribution<T>>` into a `Distribution<T>`.
+    ///
+    /// A `Distribution<Distribution<T>>` can be interpreted as a sequence of
+    /// two experiments, where the outcome of the first informs what experiment
+    /// is conducted second.
     pub fn flatten(self) -> Distribution<T> {
         self.and_then(std::convert::identity)
     }
@@ -176,14 +266,14 @@ mod tests {
 
     #[test]
     fn test_and_then() {
-        fn flip_again_if_tails(coin: Coin) -> Distribution<Coin> {
+        fn reflip_if_tails(coin: Coin) -> Distribution<Coin> {
             match coin {
                 Coin::Heads => Distribution::always(Coin::Heads),
                 Coin::Tails => Coin::flip(),
             }
         }
-        let d1 = Coin::flip().map(flip_again_if_tails).flatten();
-        let d2 = Coin::flip().and_then(flip_again_if_tails);
+        let d1 = Coin::flip().map(reflip_if_tails).flatten();
+        let d2 = Coin::flip().and_then(reflip_if_tails);
         assert_eq!(d1, d2);
         assert_eq!(d1.pmf(&Coin::Tails), (Probability(0.25)));
         assert_eq!(d1.pmf(&Coin::Heads), (Probability(0.75)));

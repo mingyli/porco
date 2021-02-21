@@ -1,5 +1,6 @@
 use std::{convert::TryFrom, ops};
 
+/// [`Probability`] is a light container for probabilities.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Probability(pub f64);
 
@@ -16,17 +17,24 @@ impl From<Probability> for f64 {
     }
 }
 
-impl TryFrom<f64> for Probability {
-    type Error = &'static str;
-
-    fn try_from(p: f64) -> Result<Self, Self::Error> {
-        if (0.0..=1.0).contains(&p) {
-            Ok(Probability(p))
-        } else {
-            Err("TODO: Use error type.")
-        }
+impl From<f64> for Probability {
+    fn from(p: f64) -> Self {
+        Probability::try_from(p).expect("The probability is between 0.0 and 1.0")
     }
 }
+
+// TODO: Consider using TryFrom instead of From.
+// impl TryFrom<f64> for Probability {
+//     type Error = &'static str;
+//
+//     fn try_from(p: f64) -> Result<Self, Self::Error> {
+//         if (0.0..=1.0).contains(&p) {
+//             Ok(Probability(p))
+//         } else {
+//             Err("TODO: Use error type.")
+//         }
+//     }
+// }
 
 impl ops::Add for Probability {
     type Output = Self;
