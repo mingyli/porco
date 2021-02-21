@@ -1,8 +1,8 @@
 # porco
 
-Composable probability distributions.
+[<img alt="docs.rs" src="https://docs.rs/porco/badge.svg">](https://docs.rs/porco)
 
-<https://docs.rs/porco>
+Composable probability distributions.
 
 ## Examples
 
