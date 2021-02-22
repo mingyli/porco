@@ -8,7 +8,7 @@
 //!
 //! ```rust
 //! # use porco::{Probability, Distribution};
-//! # #[derive(Debug, PartialEq, Eq)]
+//! # #[derive(Debug, PartialEq)]
 //! enum Coin {
 //!     Heads,
 //!     Tails,
@@ -30,7 +30,7 @@
 //!
 //! ```rust
 //! # use porco::{Probability, Distribution};
-//! # #[derive(Debug, PartialEq, Eq)]
+//! # #[derive(Debug, PartialEq)]
 //! # enum Coin {
 //! #     Heads,
 //! #     Tails,

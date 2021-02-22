@@ -6,7 +6,7 @@ pub trait AssociationExt<K, V> {
 
 impl<K, V> AssociationExt<K, V> for Vec<(K, V)>
 where
-    K: Eq,
+    K: PartialEq,
 {
     fn insert_(&mut self, k: K, v: V) -> Option<V> {
         let result = match self.find_(&k) {

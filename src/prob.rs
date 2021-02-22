@@ -9,8 +9,6 @@ impl Probability {
     pub const ONE: Probability = Probability(1.0);
 }
 
-impl Eq for Probability {}
-
 impl From<Probability> for f64 {
     fn from(probability: Probability) -> Self {
         probability.0

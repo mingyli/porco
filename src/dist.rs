@@ -4,12 +4,12 @@ use crate::{assoc_list::AssociationExt, Probability};
 /// the set of outcomes `T`.
 ///
 /// See the [module level documentation for an overview](crate).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Distribution<T>(Vec<(T, Probability)>);
 
 impl<T> Distribution<T>
 where
-    T: Eq,
+    T: PartialEq,
 {
     /// Create a distribution using given outcome probabilities.
     pub fn new<V: Into<Vec<(T, Probability)>>>(v: V) -> Distribution<T> {
@@ -33,7 +33,7 @@ where
     ///
     /// ```
     /// # use porco::{Distribution, Probability};
-    /// # #[derive(Debug, PartialEq, Eq)]
+    /// # #[derive(Debug, PartialEq)]
     /// # enum Coin {
     /// #     Heads,
     /// #     Tails,
@@ -50,7 +50,7 @@ where
     /// ```
     pub fn map<F, U>(self, f: F) -> Distribution<U>
     where
-        U: Eq,
+        U: PartialEq,
         F: Fn(T) -> U,
     {
         Distribution::from(
@@ -66,7 +66,7 @@ where
     ///
     /// ```
     /// # use porco::{Distribution, Probability};
-    /// # #[derive(Debug, PartialEq, Eq)]
+    /// # #[derive(Debug, PartialEq)]
     /// # enum Coin {
     /// #     Heads,
     /// #     Tails,
@@ -88,7 +88,7 @@ where
     ///
     /// ```
     /// # use porco::{Distribution, Probability};
-    /// # #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+    /// # #[derive(Copy, Clone, Debug, PartialEq)]
     /// # enum Coin {
     /// #     Heads,
     /// #     Tails,
@@ -107,7 +107,7 @@ where
     /// ```
     pub fn and_then<F, U>(self, f: F) -> Distribution<U>
     where
-        U: Eq,
+        U: PartialEq,
         F: Fn(T) -> Distribution<U>,
     {
         Distribution::from(
@@ -151,7 +151,7 @@ where
     ///
     /// ```
     /// # use porco::{Distribution, Probability};
-    /// # #[derive(Debug, PartialEq, Eq)]
+    /// # #[derive(Debug, PartialEq)]
     /// # enum Coin {
     /// #     Heads,
     /// #     Tails,
@@ -184,7 +184,7 @@ where
     ///
     /// ```
     /// # use porco::{Distribution, Probability};
-    /// # #[derive(Debug, PartialEq, Eq)]
+    /// # #[derive(Debug, PartialEq)]
     /// # enum Coin {
     /// #     Heads,
     /// #     Tails,
@@ -209,7 +209,7 @@ where
 
 impl<T> Distribution<Distribution<T>>
 where
-    T: Eq,
+    T: PartialEq,
 {
     /// Convert a `Distribution<Distribution<T>>` into a `Distribution<T>`.
     ///
@@ -223,7 +223,7 @@ where
 
 impl<T> From<Vec<(T, Probability)>> for Distribution<T>
 where
-    T: Eq,
+    T: PartialEq,
 {
     fn from(v: Vec<(T, Probability)>) -> Self {
         Distribution::new(v)
@@ -232,7 +232,7 @@ where
 
 impl<T, const N: usize> From<[(T, Probability); N]> for Distribution<T>
 where
-    T: Eq,
+    T: PartialEq,
 {
     fn from(s: [(T, Probability); N]) -> Self {
         Distribution::new(s)
@@ -243,7 +243,7 @@ where
 mod tests {
     use super::*;
 
-    #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+    #[derive(Debug, Copy, Clone, PartialEq)]
     enum Coin {
         Heads,
         Tails,
@@ -256,7 +256,7 @@ mod tests {
         }
     }
 
-    #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+    #[derive(Debug, Copy, Clone, PartialEq)]
     enum Die {
         One = 1,
         Two = 2,
