@@ -1,11 +1,11 @@
 //! Porco is a library for working with and composing probability
 //! distributions.
-//! 
+//!
 //! The API is inspired by the contents of
 //! [Probabilistic Functional Programming in Haskell][paper]
 //! but with naming conventions that match those of [`Option`] and [`Result`]
 //! (such as [`Option::and_then`]).
-//! 
+//!
 //! ```rust
 //! # use porco::{Probability, Distribution};
 //! # #[derive(Debug, PartialEq, Eq)]
@@ -13,21 +13,21 @@
 //!     Heads,
 //!     Tails,
 //! }
-//! 
+//!
 //! impl Coin {
 //!     fn flip() -> Distribution<Coin> {
 //!         Distribution::uniform([Coin::Heads, Coin::Tails])
 //!     }
 //! }
-//! 
+//!
 //! let coin = Coin::flip();
 //! assert_eq!(coin.pmf(&Coin::Heads), Probability(0.5));
 //! ```
-//! 
+//!
 //! You can compose various operations over `Distribution`s using combinators
 //! like [`Distribution::map`], [`Distribution::and_then`], and
 //! [`Distribution::given`].
-//! 
+//!
 //! ```rust
 //! # use porco::{Probability, Distribution};
 //! # #[derive(Debug, PartialEq, Eq)]
@@ -47,11 +47,11 @@
 //!         Coin::Tails => Coin::flip(),
 //!     }
 //! }
-//! 
+//!
 //! let coin = Coin::flip().and_then(reflip_if_tails);
 //! assert_eq!(coin.pmf(&Coin::Heads), Probability(0.75));
 //! ```
-//! 
+//!
 //! [paper]: https://web.engr.oregonstate.edu/~erwig/papers/PFP_JFP06.pdf
 mod assoc_list;
 mod dist;
