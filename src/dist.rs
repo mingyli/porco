@@ -177,7 +177,9 @@ where
     pub fn pmf(&self, t: &T) -> Probability {
         *self.0.get_(t).unwrap_or(&Probability::ZERO)
     }
+}
 
+impl Distribution<f64> {
     /// Compute the expectation of a random variable.
     ///
     /// A random variable is a mapping from outcomes to real values.
@@ -193,17 +195,16 @@ where
     ///     (Coin::Heads, Probability(0.25)),
     ///     (Coin::Tails, Probability(0.75)),
     /// ]);
-    /// let ev = weighted_coin.expectation(|coin| match coin {
-    ///     Coin::Heads => 1.0,
-    ///     Coin::Tails => 0.0,
-    /// });
+    /// let ev = weighted_coin
+    ///     .map(|coin| match coin {
+    ///         Coin::Heads => 1.0,
+    ///         Coin::Tails => 0.0,
+    ///     })
+    ///     .expectation();
     /// assert_eq!(ev, 0.25);
     /// ```
-    pub fn expectation<F>(&self, random_variable: F) -> f64
-    where
-        F: Fn(&T) -> f64,
-    {
-        self.0.iter().map(|(t, p)| random_variable(t) * p.0).sum()
+    pub fn expectation(&self) -> f64 {
+        self.0.iter().map(|(t, p)| t * p.0).sum()
     }
 }
 
