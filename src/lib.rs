@@ -52,6 +52,15 @@
 //! assert_eq!(coin.pmf(&Coin::Heads), Probability(0.75));
 //! ```
 //!
+//! You can also compute summary statistics of random variables.
+//!
+//! ```rust
+//! # use porco::{Probability, Distribution};
+//! let die = Distribution::uniform([1, 2, 3, 4, 5, 6]);
+//! let ev = die.given(|&v| v <= 4).expectation();
+//! assert_eq!(ev, 2.5);
+//! ```
+//!
 //! [paper]: https://web.engr.oregonstate.edu/~erwig/papers/PFP_JFP06.pdf
 mod assoc_list;
 mod dist;

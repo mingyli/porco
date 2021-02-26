@@ -179,7 +179,10 @@ where
     }
 }
 
-impl Distribution<f64> {
+impl<T> Distribution<T>
+where
+    T: Into<f64> + Clone,
+{
     /// Compute the expectation of a random variable.
     ///
     /// A random variable is a mapping from outcomes to real values.
@@ -191,20 +194,20 @@ impl Distribution<f64> {
     /// #     Heads,
     /// #     Tails,
     /// # }
-    /// let weighted_coin = Distribution::from([
+    /// let biased_coin = Distribution::from([
     ///     (Coin::Heads, Probability(0.25)),
     ///     (Coin::Tails, Probability(0.75)),
     /// ]);
-    /// let ev = weighted_coin
+    /// let ev = biased_coin
     ///     .map(|coin| match coin {
-    ///         Coin::Heads => 1.0,
-    ///         Coin::Tails => 0.0,
+    ///         Coin::Heads => 1,
+    ///         Coin::Tails => 0,
     ///     })
     ///     .expectation();
     /// assert_eq!(ev, 0.25);
     /// ```
     pub fn expectation(&self) -> f64 {
-        self.0.iter().map(|(t, p)| t * p.0).sum()
+        self.0.iter().map(|(t, p)| t.clone().into() * p.0).sum()
     }
 }
 

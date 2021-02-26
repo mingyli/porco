@@ -37,3 +37,11 @@ fn reflip_if_tails(coin: Coin) -> Distribution<Coin> {
 let coin = Coin::flip().and_then(reflip_if_tails);
 assert_eq!(coin.pmf(&Coin::Heads), Probability(0.75));
 ```
+
+Compute summary statistics of random variables.
+
+```rust
+let die = Distribution::uniform([1, 2, 3, 4, 5, 6]);
+let ev = die.given(|&v| v <= 4).expectation();
+assert_eq!(ev, 2.5);
+```
