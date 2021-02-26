@@ -1,7 +1,7 @@
 [package]
 name = "porco"
-version = "0.1.0"
-authors = ["Ming <mingyli34@gmail.com>"]
+version = "0.1.1"
+authors = ["<mingyli34@gmail.com>"]
 edition = "2018"
 description = "Composable probability distributions"
 documentation = "https://docs.rs/porco"
