@@ -1,4 +1,5 @@
-use crate::{assoc_list::AssociationExt, Probability};
+use crate::Probability;
+use assoc::AssocListExt;
 
 /// [`Distribution<T>`] is a discrete probability distribution over
 /// the set of outcomes `T`.
@@ -71,6 +72,11 @@ where
     /// #     Heads,
     /// #     Tails,
     /// # }
+    /// # impl Coin {
+    /// #     fn flip() -> Distribution<Coin> {
+    /// #         Distribution::uniform([Coin::Heads, Coin::Tails])
+    /// #     }
+    /// # }
     /// fn roll_a_die_if_heads(coin: Coin) -> Distribution<Option<u8>> {
     ///     match coin {
     ///         Coin::Heads => Distribution::uniform([Some(1), Some(2), Some(3), Some(4)]),
@@ -78,8 +84,7 @@ where
     ///     }
     /// }
     ///
-    /// let dist = Distribution::uniform([Coin::Heads, Coin::Tails])
-    ///     .and_then(roll_a_die_if_heads);
+    /// let dist = Coin::flip().and_then(roll_a_die_if_heads);
     /// assert_eq!(dist.pmf(&None), Probability(0.5));
     /// assert_eq!(dist.pmf(&Some(2)), Probability(0.125));
     /// ```
@@ -122,19 +127,9 @@ where
     fn regroup(self) -> Distribution<T> {
         let mut ass = Vec::new();
         for (t, p) in self.0 {
-            let p = p + match ass.get_(&t) {
-                Some(prob) => *prob,
-                None => Probability::ZERO,
-            };
-            ass.insert_(t, p);
+            ass.entry(t).and_modify(|e| *e = *e + p).or_insert(p);
         }
         Distribution(ass)
-        /*
-         * TODO: Rewrite after Entry API is implemented.
-         * for (t, p) in self.0 {
-         *     ass.entry(t).and_modify(|e| *e = *e + p).or_insert(p);
-         * }
-         */
     }
 
     fn normalize(self) -> Distribution<T> {
@@ -175,7 +170,7 @@ where
 
     /// Get the probability of an outcome occurring from the probability mass function.
     pub fn pmf(&self, t: &T) -> Probability {
-        *self.0.get_(t).unwrap_or(&Probability::ZERO)
+        *self.0.get(t).unwrap_or(&Probability::ZERO)
     }
 }
 

@@ -62,7 +62,6 @@
 //! ```
 //!
 //! [paper]: https://web.engr.oregonstate.edu/~erwig/papers/PFP_JFP06.pdf
-mod assoc_list;
 mod dist;
 mod prob;
 
