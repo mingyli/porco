@@ -1,5 +1,5 @@
 use crate::Probability;
-use assoc::AssocListExt;
+use assoc::AssocExt;
 
 /// [`Distribution<T>`] is a discrete probability distribution over
 /// the set of outcomes `T`.
