@@ -1,10 +1,16 @@
-use crate::Probability;
+use std::iter::FromIterator;
+
 use assoc::AssocExt;
+
+use crate::Probability;
 
 /// [`Distribution<T>`] is a discrete probability distribution over
 /// the set of outcomes `T`.
 ///
 /// See the [module level documentation for an overview](crate).
+///
+/// The underlying implementation of a `Distribution<T>` is an associative
+/// array `Vec<T, Probability>` through the [`assoc`] crate.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Distribution<T>(Vec<(T, Probability)>);
 
@@ -13,8 +19,8 @@ where
     T: PartialEq,
 {
     /// Create a distribution using given outcome probabilities.
-    pub fn new<V: Into<Vec<(T, Probability)>>>(v: V) -> Distribution<T> {
-        Distribution(v.into()).regroup()
+    pub fn new<I: IntoIterator<Item = (T, Probability)>>(iter: I) -> Distribution<T> {
+        Distribution(iter.into_iter().collect()).regroup()
     }
 
     /// Create a distribution where the given outcome always occurs.
@@ -23,8 +29,8 @@ where
     }
 
     /// Create a uniform distribution over a collection of outcomes.
-    pub fn uniform<V: Into<Vec<T>>>(outcomes: V) -> Distribution<T> {
-        let outcomes = outcomes.into();
+    pub fn uniform<I: IntoIterator<Item = T>>(iter: I) -> Distribution<T> {
+        let outcomes: Vec<_> = iter.into_iter().collect();
         let p = Probability(1.0 / outcomes.len() as f64);
         Distribution::from(outcomes.into_iter().map(|t| (t, p)).collect::<Vec<_>>())
     }
@@ -39,7 +45,7 @@ where
     /// #     Heads,
     /// #     Tails,
     /// # }
-    /// let dist = Distribution::uniform([0, 1, 2, 3]).map(|v| {
+    /// let dist = Distribution::uniform(vec![0, 1, 2, 3]).map(|v| {
     ///     if v == 3 {
     ///         Coin::Heads
     ///     } else {
@@ -74,12 +80,12 @@ where
     /// # }
     /// # impl Coin {
     /// #     fn flip() -> Distribution<Coin> {
-    /// #         Distribution::uniform([Coin::Heads, Coin::Tails])
+    /// #         Distribution::uniform(vec![Coin::Heads, Coin::Tails])
     /// #     }
     /// # }
     /// fn roll_a_die_if_heads(coin: Coin) -> Distribution<Option<u8>> {
     ///     match coin {
-    ///         Coin::Heads => Distribution::uniform([Some(1), Some(2), Some(3), Some(4)]),
+    ///         Coin::Heads => Distribution::uniform(vec![Some(1), Some(2), Some(3), Some(4)]),
     ///         Coin::Tails => Distribution::always(None),
     ///     }
     /// }
@@ -100,11 +106,11 @@ where
     /// # }
     /// # impl Coin {
     /// #     fn flip() -> Distribution<Coin> {
-    /// #         Distribution::uniform([Coin::Heads, Coin::Tails])
+    /// #         Distribution::uniform(vec![Coin::Heads, Coin::Tails])
     /// #     }
     /// # }
     /// fn flip_another(coin: Coin) -> Distribution<(Coin, Coin)> {
-    ///     Distribution::uniform([(coin, Coin::Heads), (coin, Coin::Tails)])
+    ///     Distribution::uniform(vec![(coin, Coin::Heads), (coin, Coin::Tails)])
     /// }
     ///
     /// let two_coins = Coin::flip().and_then(flip_another);
@@ -151,7 +157,7 @@ where
     /// #     Heads,
     /// #     Tails,
     /// # }
-    /// let die = Distribution::uniform([1, 2, 3, 4, 5, 6]);
+    /// let die = Distribution::uniform(vec![1, 2, 3, 4, 5, 6]);
     /// let die_given_less_than_three = die.given(|&v| v < 3);
     /// assert_eq!(die_given_less_than_three.pmf(&1), Probability(0.5));
     /// ```
@@ -220,6 +226,21 @@ where
     }
 }
 
+impl<T> FromIterator<(T, f64)> for Distribution<T>
+where
+    T: PartialEq,
+{
+    /// ```rust
+    /// use porco::Distribution;
+    ///
+    /// let dist: Distribution<&str> = vec![("a", 0.4), ("b", 0.6)].into_iter().collect();
+    /// ```
+    fn from_iter<I: IntoIterator<Item = (T, f64)>>(iter: I) -> Self {
+        let v: Vec<_> = iter.into_iter().map(|(t, p)| (t, Probability(p))).collect();
+        Distribution::new(v)
+    }
+}
+
 impl<T> From<Vec<(T, Probability)>> for Distribution<T>
 where
     T: PartialEq,
@@ -234,103 +255,8 @@ where
     T: PartialEq,
 {
     fn from(s: [(T, Probability); N]) -> Self {
-        Distribution::new(s)
-    }
-}
+        use std::array;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(Debug, Copy, Clone, PartialEq)]
-    enum Coin {
-        Heads,
-        Tails,
-    }
-    impl Coin {
-        const OUTCOMES: [Coin; 2] = [Coin::Heads, Coin::Tails];
-
-        fn flip() -> Distribution<Coin> {
-            Distribution::uniform(Coin::OUTCOMES)
-        }
-    }
-
-    #[derive(Debug, Copy, Clone, PartialEq)]
-    enum Die {
-        One = 1,
-        Two = 2,
-        Three = 3,
-        Four = 4,
-        Five = 5,
-        Six = 6,
-    }
-    impl Die {
-        const OUTCOMES: [Die; 6] = [
-            Die::One,
-            Die::Two,
-            Die::Three,
-            Die::Four,
-            Die::Five,
-            Die::Six,
-        ];
-
-        fn roll() -> Distribution<Die> {
-            Distribution::uniform(Die::OUTCOMES)
-        }
-    }
-
-    #[test]
-    fn test_coin() {
-        let coin_flip = Distribution::uniform(Coin::OUTCOMES);
-        assert_eq!(
-            coin_flip,
-            Distribution::from([
-                (Coin::Heads, Probability(0.5)),
-                (Coin::Tails, Probability(0.5))
-            ])
-        );
-    }
-
-    #[test]
-    fn test_and_then() {
-        fn reflip_if_tails(coin: Coin) -> Distribution<Coin> {
-            match coin {
-                Coin::Heads => Distribution::always(Coin::Heads),
-                Coin::Tails => Coin::flip(),
-            }
-        }
-        let d1 = Coin::flip().map(reflip_if_tails).flatten();
-        let d2 = Coin::flip().and_then(reflip_if_tails);
-        assert_eq!(d1, d2);
-        assert_eq!(d1.pmf(&Coin::Tails), (Probability(0.25)));
-        assert_eq!(d1.pmf(&Coin::Heads), (Probability(0.75)));
-    }
-
-    #[test]
-    fn test_die() {
-        let five_or_six = Die::roll().map(|die| matches!(die, Die::Five | Die::Six));
-        assert_eq!(five_or_six.pmf(&true), (Probability(1.0 / 3.0)));
-    }
-
-    #[test]
-    fn test_two_dice() {
-        fn roll_another_die(die: Die) -> Distribution<(Die, Die)> {
-            Die::roll().and_then(|d| Distribution::always((die, d)))
-        }
-        let two_dice = Die::roll().and_then(roll_another_die);
-        let sum_two_dice_eight_or_nine = two_dice
-            .map(|(d1, d2)| d1 as u8 + d2 as u8)
-            .map(|s| s == 8 || s == 9);
-        assert_eq!(sum_two_dice_eight_or_nine.pmf(&true), Probability(0.25));
-    }
-
-    #[test]
-    fn test_given() {
-        fn less_than_three(die: &Die) -> bool {
-            matches!(die, Die::One | Die::Two)
-        }
-        let die = Die::roll();
-        let die_with_more_knowledge = die.given(less_than_three);
-        assert_eq!(die_with_more_knowledge.pmf(&Die::One), Probability(0.5));
+        Distribution::new(array::IntoIter::new(s))
     }
 }

@@ -16,7 +16,7 @@
 //!
 //! impl Coin {
 //!     fn flip() -> Distribution<Coin> {
-//!         Distribution::uniform([Coin::Heads, Coin::Tails])
+//!         Distribution::uniform(vec![Coin::Heads, Coin::Tails])
 //!     }
 //! }
 //!
@@ -36,9 +36,8 @@
 //! #     Tails,
 //! # }
 //! # impl Coin {
-//! #     const OUTCOMES: [Coin; 2] = [Coin::Heads, Coin::Tails];
 //! #     fn flip() -> Distribution<Coin> {
-//! #         Distribution::uniform(Coin::OUTCOMES)
+//! #         Distribution::uniform(vec![Coin::Heads, Coin::Tails])
 //! #     }
 //! # }
 //! fn reflip_if_tails(coin: Coin) -> Distribution<Coin> {
@@ -56,12 +55,13 @@
 //!
 //! ```rust
 //! # use porco::{Probability, Distribution};
-//! let die = Distribution::uniform([1, 2, 3, 4, 5, 6]);
+//! let die = Distribution::uniform(vec![1, 2, 3, 4, 5, 6]);
 //! let ev = die.given(|&v| v <= 4).expectation();
 //! assert_eq!(ev, 2.5);
 //! ```
 //!
 //! [paper]: https://web.engr.oregonstate.edu/~erwig/papers/PFP_JFP06.pdf
+#![feature(array_value_iter)]
 mod dist;
 mod prob;
 
