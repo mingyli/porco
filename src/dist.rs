@@ -10,7 +10,7 @@ use crate::Probability;
 /// See the [module level documentation for an overview](crate).
 ///
 /// The underlying implementation of a `Distribution<T>` is an associative
-/// array `Vec<T, Probability>` through the [`assoc`] crate.
+/// array `Vec<(T, Probability)>` through the [`assoc`] crate.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Distribution<T>(Vec<(T, Probability)>);
 
@@ -19,16 +19,51 @@ where
     T: PartialEq,
 {
     /// Create a distribution using given outcome probabilities.
+    ///
+    /// ```rust
+    /// # use porco::{Distribution, Probability};
+    /// # #[derive(Debug, PartialEq)]
+    /// # enum Coin {
+    /// #     Heads,
+    /// #     Tails,
+    /// # }
+    /// let biased_coin = Distribution::new(vec![
+    ///     (Coin::Heads, Probability(0.75)),
+    ///     (Coin::Tails, Probability(0.25)),
+    /// ]);
+    /// ```
     pub fn new<I: IntoIterator<Item = (T, Probability)>>(iter: I) -> Distribution<T> {
         Distribution(iter.into_iter().collect()).regroup()
     }
 
     /// Create a distribution where the given outcome always occurs.
+    ///
+    /// ```rust
+    /// # use porco::{Distribution, Probability};
+    /// # #[derive(Debug, PartialEq)]
+    /// # enum Coin {
+    /// #     Heads,
+    /// #     Tails,
+    /// # }
+    /// let rigged_coin = Distribution::always(Coin::Heads);
+    /// assert_eq!(rigged_coin.pmf(&Coin::Heads), Probability(1.0));
+    /// ```
     pub fn always(t: T) -> Distribution<T> {
         Distribution(vec![(t, Probability::ONE)])
     }
 
     /// Create a uniform distribution over a collection of outcomes.
+    ///
+    /// ```rust
+    /// # use porco::{Distribution, Probability};
+    /// # #[derive(Debug, PartialEq)]
+    /// # enum Coin {
+    /// #     Heads,
+    /// #     Tails,
+    /// # }
+    /// let fair_coin = Distribution::uniform(vec![Coin::Heads, Coin::Tails]);
+    /// assert_eq!(fair_coin.pmf(&Coin::Heads), Probability(0.5));
+    /// ```
     pub fn uniform<I: IntoIterator<Item = T>>(iter: I) -> Distribution<T> {
         let outcomes: Vec<_> = iter.into_iter().collect();
         let p = Probability(1.0 / outcomes.len() as f64);
@@ -221,6 +256,30 @@ where
     /// A `Distribution<Distribution<T>>` can be interpreted as a sequence of
     /// two experiments, where the outcome of the first informs what experiment
     /// is conducted second.
+    ///
+    /// ```
+    /// # use porco::{Distribution, Probability};
+    /// # #[derive(Debug, PartialEq)]
+    /// # enum Coin {
+    /// #     Heads,
+    /// #     Tails,
+    /// # }
+    /// # impl Coin {
+    /// #     fn flip() -> Distribution<Coin> {
+    /// #         Distribution::uniform(vec![Coin::Heads, Coin::Tails])
+    /// #     }
+    /// # }
+    /// fn reflip_if_tails(coin: Coin) -> Distribution<Coin> {
+    ///     match coin {
+    ///         Coin::Heads => Distribution::always(Coin::Heads),
+    ///         Coin::Tails => Coin::flip(),
+    ///     }
+    /// }
+    ///
+    /// let dist: Distribution<Distribution<Coin>> = Coin::flip().map(reflip_if_tails);
+    /// let coin = dist.flatten();
+    /// assert_eq!(coin.pmf(&Coin::Heads), Probability(0.75));
+    /// ```
     pub fn flatten(self) -> Distribution<T> {
         self.and_then(std::convert::identity)
     }
