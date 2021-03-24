@@ -247,6 +247,38 @@ where
     }
 }
 
+impl<T> Distribution<T>
+where
+    T: std::ops::Add<Output = T> + Clone + PartialEq,
+{
+    /// Perform the convolution of two random variables.
+    ///
+    /// If `x` and `y` are two independent random variables, then `x.convolve(y)` is the
+    /// distribution of the random variable `x + y`.
+    ///
+    /// ```rust
+    /// # use porco::{Distribution, Probability};
+    /// fn two_sided_die() -> Distribution<u8> {
+    ///     Distribution::uniform(vec![1, 2])
+    /// }
+    ///
+    /// let x = two_sided_die();
+    /// let y = two_sided_die();
+    /// let sum = x.convolve(y);
+    /// assert_eq!(sum.pmf(&2), Probability(0.25));
+    /// assert_eq!(sum.pmf(&3), Probability(0.5));
+    /// ```
+    pub fn convolve(self, other: Distribution<T>) -> Distribution<T> {
+        use itertools::Itertools;
+
+        self.0
+            .into_iter()
+            .cartesian_product(other.0)
+            .map(|((t1, p1), (t2, p2))| (t1 + t2, p1 * p2))
+            .collect()
+    }
+}
+
 impl<T> Distribution<Distribution<T>>
 where
     T: PartialEq,
@@ -297,6 +329,15 @@ where
     fn from_iter<I: IntoIterator<Item = (T, f64)>>(iter: I) -> Self {
         let v: Vec<_> = iter.into_iter().map(|(t, p)| (t, Probability(p))).collect();
         Distribution::new(v)
+    }
+}
+
+impl<T> FromIterator<(T, Probability)> for Distribution<T>
+where
+    T: PartialEq,
+{
+    fn from_iter<I: IntoIterator<Item = (T, Probability)>>(iter: I) -> Self {
+        Distribution::new(iter.into_iter().collect::<Vec<_>>())
     }
 }
 

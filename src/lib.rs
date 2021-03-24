@@ -51,13 +51,23 @@
 //! assert_eq!(coin.pmf(&Coin::Heads), Probability(0.75));
 //! ```
 //!
-//! You can also compute summary statistics of random variables.
+//! You can also manipulate random variables and compute summary statistics.
 //!
 //! ```rust
 //! # use porco::{Probability, Distribution};
 //! let die = Distribution::uniform(vec![1, 2, 3, 4, 5, 6]);
 //! let ev = die.given(|&v| v <= 4).expectation();
 //! assert_eq!(ev, 2.5);
+//!
+//! fn two_sided_die() -> Distribution<u8> {
+//!     Distribution::uniform(vec![1, 2])
+//! }
+//!
+//! let x = two_sided_die();
+//! let y = two_sided_die();
+//! let sum = x.convolve(y);
+//! assert_eq!(sum.pmf(&2), Probability(0.25));
+//! assert_eq!(sum.pmf(&3), Probability(0.5));
 //! ```
 //!
 //! [paper]: https://web.engr.oregonstate.edu/~erwig/papers/PFP_JFP06.pdf
