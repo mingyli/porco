@@ -32,6 +32,23 @@ where
     ///     (Coin::Tails, Probability(0.25)),
     /// ]);
     /// ```
+    ///
+    /// It can be easier to collect an iterator through [`Distribution::from_iter`]:
+    ///
+    /// ```rust
+    /// # use porco::{Distribution, Probability};
+    /// # #[derive(Debug, PartialEq)]
+    /// # enum Coin {
+    /// #     Heads,
+    /// #     Tails,
+    /// # }
+    /// let biased_coin: Distribution<Coin> = vec![
+    ///     (Coin::Heads, Probability(0.75)),
+    ///     (Coin::Tails, Probability(0.25)),
+    /// ]
+    /// .into_iter()
+    /// .collect();
+    /// ```
     pub fn new<I: IntoIterator<Item = (T, Probability)>>(iter: I) -> Distribution<T> {
         Distribution(iter.into_iter().collect()).regroup()
     }
@@ -67,7 +84,7 @@ where
     pub fn uniform<I: IntoIterator<Item = T>>(iter: I) -> Distribution<T> {
         let outcomes: Vec<_> = iter.into_iter().collect();
         let p = Probability(1.0 / outcomes.len() as f64);
-        Distribution::from(outcomes.into_iter().map(|t| (t, p)).collect::<Vec<_>>())
+        Distribution::from_iter(outcomes.into_iter().map(|t| (t, p)))
     }
 
     /// Convert a `Distribution<T>` into a `Distribution<U>` by mapping
@@ -95,12 +112,7 @@ where
         U: PartialEq,
         F: Fn(T) -> U,
     {
-        Distribution::from(
-            self.0
-                .into_iter()
-                .map(|(t, p)| (f(t), p))
-                .collect::<Vec<_>>(),
-        )
+        Distribution::from_iter(self.0.into_iter().map(|(t, p)| (f(t), p)))
     }
 
     /// Convert a `Distribution<T>` into a `Distribution<U>` by mapping
@@ -156,31 +168,24 @@ where
         U: PartialEq,
         F: Fn(T) -> Distribution<U>,
     {
-        Distribution::from(
+        Distribution::from_iter(
             self.0
                 .into_iter()
                 .map(|(t, p)| (f(t), p))
-                .flat_map(|(dist, p)| dist.0.into_iter().map(move |(t, p2)| (t, p * p2)))
-                .collect::<Vec<_>>(),
+                .flat_map(|(dist, p)| dist.0.into_iter().map(move |(t, p2)| (t, p * p2))),
         )
     }
 
     fn regroup(self) -> Distribution<T> {
-        let mut ass = Vec::new();
-        for (t, p) in self.0 {
-            ass.entry(t).and_modify(|e| *e = *e + p).or_insert(p);
-        }
-        Distribution(ass)
+        Distribution(self.0.into_iter().fold(Vec::new(), |mut vec, (t, p)| {
+            vec.entry(t).and_modify(|e| *e = *e + p).or_insert(p);
+            vec
+        }))
     }
 
     fn normalize(self) -> Distribution<T> {
         let factor: f64 = self.0.iter().map(|(_, p)| p.0).sum();
-        Distribution::from(
-            self.0
-                .into_iter()
-                .map(|(t, p)| (t, p / factor))
-                .collect::<Vec<_>>(),
-        )
+        self.0.into_iter().map(|(t, p)| (t, p / factor)).collect()
     }
 
     /// Create a distribution from a distribution conditioned on an event occurring.
@@ -200,13 +205,7 @@ where
     where
         F: Fn(&T) -> bool,
     {
-        Distribution::from(
-            self.0
-                .into_iter()
-                .filter(|(t, _)| condition(t))
-                .collect::<Vec<_>>(),
-        )
-        .normalize()
+        Distribution::from_iter(self.0.into_iter().filter(|(t, _)| condition(t))).normalize()
     }
 
     /// Get the probability of an outcome occurring from the probability mass function.
@@ -327,8 +326,7 @@ where
     /// let dist: Distribution<&str> = vec![("a", 0.4), ("b", 0.6)].into_iter().collect();
     /// ```
     fn from_iter<I: IntoIterator<Item = (T, f64)>>(iter: I) -> Self {
-        let v: Vec<_> = iter.into_iter().map(|(t, p)| (t, Probability(p))).collect();
-        Distribution::new(v)
+        Distribution::from_iter(iter.into_iter().map(|(t, p)| (t, Probability(p))))
     }
 }
 
@@ -337,7 +335,7 @@ where
     T: PartialEq,
 {
     fn from_iter<I: IntoIterator<Item = (T, Probability)>>(iter: I) -> Self {
-        Distribution::new(iter.into_iter().collect::<Vec<_>>())
+        Distribution::new(iter)
     }
 }
 
@@ -346,7 +344,7 @@ where
     T: PartialEq,
 {
     fn from(v: Vec<(T, Probability)>) -> Self {
-        Distribution::new(v)
+        Distribution::from_iter(v)
     }
 }
 
@@ -357,6 +355,6 @@ where
     fn from(s: [(T, Probability); N]) -> Self {
         use std::array;
 
-        Distribution::new(array::IntoIter::new(s))
+        Distribution::from_iter(array::IntoIter::new(s))
     }
 }
