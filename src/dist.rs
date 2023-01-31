@@ -353,8 +353,6 @@ where
     T: PartialEq,
 {
     fn from(s: [(T, Probability); N]) -> Self {
-        use std::array;
-
-        Distribution::from_iter(array::IntoIter::new(s))
+        Distribution::from_iter(s)
     }
 }
